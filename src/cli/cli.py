@@ -17,10 +17,13 @@ def cli():
 @click.argument('target')
 def lookup(target):
     """Lookup geolocation for an IP or Domain."""
-    ip = resolve_ip(target)
-    data = service.get_location(ip)
-    HistoryService.save_lookup(data)
-    click.echo(f"Location: {data.city}, {data.country}")
+    try:
+        ip = resolve_ip(target)
+        data = service.get_location(ip)
+        HistoryService.save_lookup(data)
+        click.echo(f"Location: {data.city}, {data.country}")
+    except Exception as e:
+        click.echo(f"Error: Could not resolve or lookup '{target}'. {e}")
 
 @cli.command()
 @click.argument('target')
