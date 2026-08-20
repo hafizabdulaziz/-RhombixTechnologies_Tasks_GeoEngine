@@ -1,11 +1,12 @@
 import requests
 from src.core.interfaces import GeolocationProvider
 from src.core.models import GeolocationData
+from config.settings import IP_API_URL, TIMEOUT
 
 class IpApiProvider(GeolocationProvider):
     def __init__(self):
         self._name = "ip-api"
-        self._base_url = "http://ip-api.com/json/"
+        self._base_url = IP_API_URL
 
     @property
     def name(self) -> str:
@@ -13,7 +14,7 @@ class IpApiProvider(GeolocationProvider):
 
     def fetch_geolocation(self, ip: str) -> GeolocationData:
         """Fetch geolocation data from ip-api.com."""
-        response = requests.get(f"{self._base_url}{ip}")
+        response = requests.get(f"{self._base_url}{ip}", timeout=TIMEOUT)
         response.raise_for_status()
         data = response.json()
 
