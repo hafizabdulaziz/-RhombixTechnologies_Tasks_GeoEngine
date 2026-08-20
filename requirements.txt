@@ -1,0 +1,7 @@
+requests
+pytest
+python-dotenv
+rich
+click
+sqlalchemy
+aiohttp
