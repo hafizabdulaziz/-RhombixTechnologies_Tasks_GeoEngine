@@ -292,7 +292,7 @@
         // Check Health Endpoint
         async function checkAPIHealth() {
             try {
-                const res = await fetch('/api/health');
+                const res = await fetch('/api/v1/health');
                 const data = await res.json();
                 
                 const ping = document.getElementById('health-ping');
