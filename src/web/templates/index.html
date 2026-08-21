@@ -55,13 +55,14 @@
     <!-- (Remainder of body content remains same, just branding changes) -->
 
     <!-- Main Content Grid -->
-    <main class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col h-[calc(100vh-80px)]">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow overflow-hidden">
 
         <!-- Left Column: Search & Metrics (5/12) -->
-        <section class="lg:col-span-5 flex flex-col gap-6">
+        <section class="lg:col-span-5 flex flex-col gap-6 overflow-hidden">
 
             <!-- Search Panel Card -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden flex-shrink-0">
                 <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-500 to-indigo-600"></div>
                 <h2 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
                     <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -109,7 +110,7 @@
             </div>
 
             <!-- Metrics Grid -->
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-2 gap-4 flex-shrink-0">
                 
                 <!-- Metric Card 1: IP & Country -->
                 <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow-lg">
@@ -182,7 +183,7 @@
             </div>
 
             <!-- History Table Card -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex-grow flex flex-col overflow-hidden min-h-[250px] max-h-[350px]">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex-grow overflow-hidden flex flex-col min-h-0">
                 <div class="flex justify-between items-center mb-3">
                     <h2 class="text-sm font-bold text-white flex items-center gap-2">
                         <svg class="w-4.5 h-4.5 text-indigo-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -216,7 +217,7 @@
         </section>
 
         <!-- Right Column: Interactive Live Map (7/12) -->
-        <section class="lg:col-span-7 flex flex-col">
+        <section class="lg:col-span-7 flex flex-col overflow-hidden">
             <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl flex-grow overflow-hidden flex flex-col min-h-[500px]">
                 <!-- Map Top Info Header -->
                 <div class="bg-slate-950 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 gap-3">
@@ -243,6 +244,7 @@
             </div>
         </section>
 
+    </div>
     </main>
 
     <!-- Footer -->
