@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoEngine Pro | Enterprise Geolocation Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0f172a; /* Slate 900 background for a sleek dark mode appearance */
+        }
+        /* Custom scrollbar for table and history */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        .leaflet-container {
+            background-color: #1e293b !important;
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col">
+
+    <!-- Header Navigation -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-tr from-rose-500 to-indigo-600 p-2.5 rounded-xl shadow-lg shadow-rose-500/20">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+                        GeoEngine <span class="text-rose-500 font-medium">Pro</span>
+                    </h1>
+                    <p class="text-xs text-slate-500 font-semibold tracking-wider uppercase">Enterprise Geolocation Engine</p>
+                </div>
+            </div>
+
+            <!-- Health Status Widget -->
+            <div id="health-widget" class="flex items-center bg-slate-950/60 border border-slate-800 px-4 py-2 rounded-xl">
+                <span class="relative flex h-3 w-3 mr-3">
+                    <span id="health-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span id="health-dot" class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                </span>
+                <span id="health-status-text" class="text-xs font-semibold text-slate-400">Systems Operational</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Left Column: Search & Metrics (5/12) -->
+        <section class="lg:col-span-5 flex flex-col gap-6">
+
+            <!-- Search Panel Card -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-500 to-indigo-600"></div>
+                <h2 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    IP & Domain Lookup
+                </h2>
+                <p class="text-sm text-slate-400 mb-4">Analyze global routing and map geographic coordinates for any IP address or domain name.</p>
+                
+                <form id="lookup-form" class="space-y-4" onsubmit="handleLookup(event)">
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            id="ip-input" 
+                            name="ip_or_domain" 
+                            placeholder="e.g., 8.8.8.8, github.com, 104.244.42.1" 
+                            required
+                            class="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 text-white rounded-xl py-3.5 px-4 text-sm font-medium transition-all duration-250 outline-none placeholder:text-slate-600"
+                        />
+                    </div>
+                    
+                    <button 
+                        type="submit" 
+                        id="search-btn"
+                        class="w-full bg-gradient-to-r from-rose-500 to-indigo-600 hover:from-rose-600 hover:to-indigo-700 active:scale-[0.98] text-white font-bold py-3.5 px-6 rounded-xl text-sm transition-all duration-150 flex items-center justify-center space-x-2 shadow-lg shadow-rose-500/10 hover:shadow-rose-500/25"
+                    >
+                        <span>Analyze Target</span>
+                        <svg id="spinner" class="animate-spin h-4 w-4 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </button>
+                </form>
+
+                <!-- Error Alert Banner -->
+                <div id="error-banner" class="hidden mt-4 bg-rose-950/40 border border-rose-900/60 rounded-xl p-4 flex items-start gap-3 transition-all duration-300">
+                    <svg class="w-5 h-5 text-rose-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                    <div>
+                        <h4 class="text-xs font-bold text-rose-200">Analysis Failed</h4>
+                        <p id="error-message" class="text-xs text-rose-300/80 mt-1">The requested target could not be resolved or all failover providers failed.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metrics Grid -->
+            <div class="grid grid-cols-2 gap-4">
+                
+                <!-- Metric Card 1: IP & Country -->
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow-lg">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Target IP</span>
+                        <div class="p-1.5 bg-slate-800 rounded-lg text-rose-500">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div>
+                        <div id="metric-ip" class="text-base font-bold text-white truncate">-</div>
+                        <div id="metric-country" class="text-xs font-semibold text-slate-400 mt-1 flex items-center gap-1.5 truncate">
+                            <span id="metric-country-flag" class="opacity-80">🌍</span>
+                            <span id="metric-country-name">Country Name</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Metric Card 2: Location -->
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow-lg">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Region & City</span>
+                        <div class="p-1.5 bg-slate-800 rounded-lg text-indigo-500">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h18v18H3V3z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div>
+                        <div id="metric-city" class="text-base font-bold text-white truncate">-</div>
+                        <div id="metric-region" class="text-xs font-semibold text-slate-400 mt-1 truncate">State/Region</div>
+                    </div>
+                </div>
+
+                <!-- Metric Card 3: Coordinates -->
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow-lg">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Coordinates</span>
+                        <div class="p-1.5 bg-slate-800 rounded-lg text-teal-500">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div>
+                        <div id="metric-coords" class="text-base font-bold text-white truncate">-</div>
+                        <div class="text-xs font-semibold text-slate-400 mt-1">Lat, Lon</div>
+                    </div>
+                </div>
+
+                <!-- Metric Card 4: Performance -->
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow-lg">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Engine Latency</span>
+                        <div class="p-1.5 bg-slate-800 rounded-lg text-amber-500">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div>
+                        <div id="metric-latency" class="text-base font-bold text-white truncate">-</div>
+                        <div id="metric-provider" class="text-xs font-semibold text-slate-400 mt-1 truncate">Provider: -</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- History Table Card -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex-grow flex flex-col overflow-hidden min-h-[250px] max-h-[350px]">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                        <svg class="w-4.5 h-4.5 text-indigo-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Recent Lookup History
+                    </h2>
+                    <span class="text-xs bg-slate-800 px-2 py-0.5 rounded text-slate-400 font-semibold uppercase tracking-wider">SQLite Connected</span>
+                </div>
+
+                <!-- Scrollable Container -->
+                <div class="overflow-y-auto flex-grow rounded-xl border border-slate-800/60 bg-slate-950/40">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-slate-950 text-slate-500 uppercase tracking-wider border-b border-slate-800/80">
+                                <th class="p-3 font-bold">Target</th>
+                                <th class="p-3 font-bold">Location</th>
+                                <th class="p-3 font-bold text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-tbody">
+                            <!-- Populated dynamically -->
+                            <tr>
+                                <td colspan="3" class="p-8 text-center text-slate-600 font-medium">Loading history...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Right Column: Interactive Live Map (7/12) -->
+        <section class="lg:col-span-7 flex flex-col">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl flex-grow overflow-hidden flex flex-col min-h-[500px]">
+                <!-- Map Top Info Header -->
+                <div class="bg-slate-950 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 gap-3">
+                    <div>
+                        <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                            <span class="flex h-2.5 w-2.5 relative">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                            </span>
+                            Interactive Visual Node Mapping
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Real-time geospatial plotting powered by OpenStreetMap & Leaflet.js</p>
+                    </div>
+                    <button 
+                        onclick="resetMap()"
+                        class="text-xs bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-semibold px-3 py-1.5 rounded-lg border border-slate-700 transition-all duration-150"
+                    >
+                        Recenter Globe
+                    </button>
+                </div>
+                
+                <!-- Leaflet Container -->
+                <div id="map" class="flex-grow w-full z-10"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800 bg-slate-950/40 py-6 px-6 text-center text-xs text-slate-600 font-medium">
+        <p>&copy; 2026 GeoEngine Pro. Built with FastAPI, Leaflet, and SQLAlchemy. All Rights Reserved.</p>
+    </footer>
+
+    <!-- Frontend logic scripts -->
+    <script>
+        let map;
+        let currentMarker = null;
+        let currentPulse = null;
+
+        // On DOM Load
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeMap();
+            loadHistory();
+            checkAPIHealth();
+        });
+
+        // Initialize Map
+        function initializeMap() {
+            // Instantiate the map pointing to a default global view (lat=20, lon=0, zoom=2)
+            map = L.map('map', {
+                zoomControl: true,
+                attributionControl: true
+            }).setView([20, 0], 2);
+
+            // Add the classic custom dark-style OpenStreetMap tiles (or default street map)
+            // Leaflet allows changing tiles easily. OpenStreetMap is robust.
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" class="hover:underline">OpenStreetMap</a> contributors'
+            }).addTo(map);
+        }
+
+        // Reset map to initial global view
+        function resetMap() {
+            map.flyTo([20, 0], 2, {
+                animate: true,
+                duration: 1.2
+            });
+        }
+
+        // Check Health Endpoint
+        async function checkAPIHealth() {
+            try {
+                const res = await fetch('/api/health');
+                const data = await res.json();
+                
+                const ping = document.getElementById('health-ping');
+                const dot = document.getElementById('health-dot');
+                const text = document.getElementById('health-status-text');
+
+                if (res.ok && data.status === 'healthy') {
+                    ping.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75";
+                    dot.className = "relative inline-flex rounded-full h-3 w-3 bg-emerald-500";
+                    text.textContent = "Systems Operational";
+                    text.className = "text-xs font-semibold text-emerald-400";
+                } else {
+                    ping.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75";
+                    dot.className = "relative inline-flex rounded-full h-3 w-3 bg-amber-500";
+                    text.textContent = "Degraded Failover";
+                    text.className = "text-xs font-semibold text-amber-400";
+                }
+            } catch (err) {
+                console.error("Health Check failed: ", err);
+                const ping = document.getElementById('health-ping');
+                const dot = document.getElementById('health-dot');
+                const text = document.getElementById('health-status-text');
+
+                ping.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75";
+                dot.className = "relative inline-flex rounded-full h-3 w-3 bg-rose-500";
+                text.textContent = "API Offline";
+                text.className = "text-xs font-semibold text-rose-400";
+            }
+        }
+
+        // Fetch & Populate History
+        async function loadHistory() {
+            try {
+                const res = await fetch('/api/history');
+                if (!res.ok) throw new Error("Could not retrieve history");
+                
+                const history = await res.json();
+                const tbody = document.getElementById('history-tbody');
+                tbody.innerHTML = ''; // Clear previous
+
+                if (history.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="3" class="p-8 text-center text-slate-600 font-medium">No lookups recorded yet.</td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                history.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.className = "border-b border-slate-800/50 hover:bg-slate-900/40 transition-colors";
+                    
+                    const ipSpan = `<span class="font-bold text-slate-200">${item.ip}</span>`;
+                    const locationSpan = `<span class="text-slate-400 font-medium">${item.city}, ${item.country}</span>`;
+                    
+                    row.innerHTML = `
+                        <td class="p-3 font-semibold text-slate-300 truncate max-w-[140px]" title="${item.ip}">
+                            ${item.ip}
+                        </td>
+                        <td class="p-3 text-slate-400 truncate max-w-[180px]" title="${item.city}, ${item.country}">
+                            ${item.city}, ${item.country}
+                        </td>
+                        <td class="p-3 text-center">
+                            <button 
+                                onclick="plotHistoricalNode(${item.latitude}, ${item.longitude}, '${item.city}', '${item.country}', '${item.ip}', '${item.provider}')"
+                                class="text-xs bg-indigo-500/10 hover:bg-indigo-500/20 active:scale-95 text-indigo-400 font-bold px-2.5 py-1.5 rounded-lg border border-indigo-500/20 transition-all duration-100"
+                            >
+                                Plot
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (err) {
+                console.error("Error loading history: ", err);
+                document.getElementById('history-tbody').innerHTML = `
+                    <tr>
+                        <td colspan="3" class="p-8 text-center text-rose-500 font-bold">Failed to load history list.</td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Form Submit Handler
+        async function handleLookup(e) {
+            e.preventDefault();
+
+            const input = document.getElementById('ip-input');
+            const target = input.value.trim();
+            if (!target) return;
+
+            const searchBtn = document.getElementById('search-btn');
+            const spinner = document.getElementById('spinner');
+            const errorBanner = document.getElementById('error-banner');
+            const errorMessage = document.getElementById('error-message');
+
+            // Set loading state
+            searchBtn.disabled = true;
+            spinner.classList.remove('hidden');
+            errorBanner.classList.add('hidden');
+
+            try {
+                const response = await fetch('/api/lookup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ip_or_domain: target })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.detail || "Lookup request failed.");
+                }
+
+                // Populate metric cards
+                const geo = result.data;
+                document.getElementById('metric-ip').textContent = geo.ip;
+                document.getElementById('metric-ip').title = geo.ip;
+                
+                document.getElementById('metric-country-name').textContent = geo.country;
+                document.getElementById('metric-country-flag').textContent = getFlagEmoji(geo.country);
+                
+                document.getElementById('metric-city').textContent = geo.city;
+                document.getElementById('metric-region').textContent = geo.region;
+                
+                document.getElementById('metric-coords').textContent = `${geo.latitude?.toFixed(4) || '-'}, ${geo.longitude?.toFixed(4) || '-'}`;
+                
+                document.getElementById('metric-latency').textContent = `${geo.latency_ms} ms`;
+                document.getElementById('metric-provider').textContent = `Provider: ${geo.provider.toUpperCase()}`;
+
+                // Plot on interactive map
+                if (geo.latitude !== null && geo.longitude !== null) {
+                    plotOnMap(geo.latitude, geo.longitude, geo.city, geo.country, geo.ip, geo.provider);
+                }
+
+                // Clear input and reload the history list
+                input.value = '';
+                await loadHistory();
+                await checkAPIHealth();
+
+            } catch (err) {
+                console.error("Lookup error:", err);
+                errorMessage.textContent = err.message || "Could not resolve or lookup target geolocation details.";
+                errorBanner.classList.remove('hidden');
+            } finally {
+                // Clear loading state
+                searchBtn.disabled = false;
+                spinner.classList.add('hidden');
+            }
+        }
+
+        // Plot node on Leaflet Map
+        function plotOnMap(lat, lon, city, country, ip, provider) {
+            // Fly to the coordinates dynamically with a smooth animation
+            map.flyTo([lat, lon], 12, {
+                animate: true,
+                duration: 1.5
+            });
+
+            // Remove previous active marker/pulses if they exist
+            if (currentMarker) map.removeLayer(currentMarker);
+            if (currentPulse) map.removeLayer(currentPulse);
+
+            // Add translucent pulsing ring indicating accuracy range
+            currentPulse = L.circle([lat, lon], {
+                color: '#ef4444',
+                fillColor: '#f87171',
+                fillOpacity: 0.15,
+                weight: 1,
+                radius: 12000 // meters
+            }).addTo(map);
+
+            // Create beautiful smooth red circle marker representing the geolocation node
+            currentMarker = L.circleMarker([lat, lon], {
+                color: '#991b1b', // Burgundy Red border
+                fillColor: '#ef4444', // Hot Red fill
+                fillOpacity: 0.95,
+                weight: 2,
+                radius: 8.5
+            }).addTo(map);
+
+            // Bind elegant modern popup
+            const popupContent = `
+                <div class="p-2 min-w-[150px] text-slate-800">
+                    <div class="text-xs text-rose-500 font-extrabold uppercase tracking-widest mb-1">Target Resolved</div>
+                    <h3 class="font-extrabold text-sm text-slate-900 leading-tight">${city}, ${country}</h3>
+                    <div class="mt-2 space-y-1 text-[11px] font-semibold text-slate-500">
+                        <div class="flex justify-between gap-4">
+                            <span>IP:</span>
+                            <span class="text-slate-700 font-bold">${ip}</span>
+                        </div>
+                        <div class="flex justify-between gap-4">
+                            <span>Provider:</span>
+                            <span class="text-slate-700">${provider.toUpperCase()}</span>
+                        </div>
+                        <div class="flex justify-between gap-4">
+                            <span>Coordinates:</span>
+                            <span class="text-indigo-600 font-mono">${lat.toFixed(4)}, ${lon.toFixed(4)}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            currentMarker.bindPopup(popupContent, {
+                closeButton: true,
+                offset: L.point(0, -5)
+            }).openPopup();
+        }
+
+        // Plot historical record from action click
+        function plotHistoricalNode(lat, lon, city, country, ip, provider) {
+            if (lat === null || lon === null || isNaN(lat) || isNaN(lon)) {
+                alert("Cannot plot node: Missing or invalid geographical coordinates.");
+                return;
+            }
+
+            // Update metrics display to show historical item
+            document.getElementById('metric-ip').textContent = ip;
+            document.getElementById('metric-ip').title = ip;
+            document.getElementById('metric-country-name').textContent = country;
+            document.getElementById('metric-country-flag').textContent = getFlagEmoji(country);
+            document.getElementById('metric-city').textContent = city;
+            document.getElementById('metric-region').textContent = "Stored Node";
+            document.getElementById('metric-coords').textContent = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+            document.getElementById('metric-latency').textContent = "Historical";
+            document.getElementById('metric-provider').textContent = `Provider: ${provider.toUpperCase()}`;
+
+            // Plot it on the map
+            plotOnMap(lat, lon, city, country, ip, provider);
+        }
+
+        // Helper: Country to Emoji Flag
+        function getFlagEmoji(countryName) {
+            if (!countryName || countryName === 'Unknown') return '🌍';
+            
+            // Map common countries to emojis for added polish
+            const countryFlags = {
+                "United States": "🇺🇸", "US": "🇺🇸", "United Kingdom": "🇬🇧", "UK": "🇬🇧",
+                "Germany": "🇩🇪", "France": "🇫🇷", "Canada": "🇨🇦", "Pakistan": "🇵🇰",
+                "India": "🇮🇳", "China": "🇨🇳", "Japan": "🇯🇵", "Australia": "🇦🇺",
+                "Netherlands": "🇳🇱", "Singapore": "🇸🇬", "Ireland": "🇮🇪", "Brazil": "🇧🇷"
+            };
+            return countryFlags[countryName] || "📍";
+        }
+    </script>
+</body>
+</html>
