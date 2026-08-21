@@ -449,60 +449,50 @@
 
         // Plot node on Leaflet Map
         function plotOnMap(lat, lon, city, country, ip, provider) {
-            // Fly to the coordinates dynamically with a smooth animation
-            map.flyTo([lat, lon], 12, {
-                animate: true,
-                duration: 1.5
-            });
-
             // Remove previous active marker/pulses if they exist
             if (currentMarker) map.removeLayer(currentMarker);
             if (currentPulse) map.removeLayer(currentPulse);
 
             // Add translucent pulsing ring indicating accuracy range
             currentPulse = L.circle([lat, lon], {
-                color: '#ef4444',
-                fillColor: '#f87171',
-                fillOpacity: 0.15,
+                color: '#6366f1', // Indigo ring
+                fillColor: '#818cf8',
+                fillOpacity: 0.1,
                 weight: 1,
-                radius: 12000 // meters
+                radius: 15000 
             }).addTo(map);
 
-            // Create beautiful smooth red circle marker representing the geolocation node
+            // Create professional custom marker
             currentMarker = L.circleMarker([lat, lon], {
-                color: '#991b1b', // Burgundy Red border
-                fillColor: '#ef4444', // Hot Red fill
-                fillOpacity: 0.95,
+                color: '#ffffff',
+                fillColor: '#f43f5e', // Rose-500
+                fillOpacity: 1,
                 weight: 2,
-                radius: 8.5
+                radius: 8
             }).addTo(map);
 
             // Bind elegant modern popup
             const popupContent = `
-                <div class="p-2 min-w-[150px] text-slate-800">
-                    <div class="text-xs text-rose-500 font-extrabold uppercase tracking-widest mb-1">Target Resolved</div>
-                    <h3 class="font-extrabold text-sm text-slate-900 leading-tight">${city}, ${country}</h3>
-                    <div class="mt-2 space-y-1 text-[11px] font-semibold text-slate-500">
-                        <div class="flex justify-between gap-4">
-                            <span>IP:</span>
-                            <span class="text-slate-700 font-bold">${ip}</span>
-                        </div>
-                        <div class="flex justify-between gap-4">
-                            <span>Provider:</span>
-                            <span class="text-slate-700">${provider.toUpperCase()}</span>
-                        </div>
-                        <div class="flex justify-between gap-4">
-                            <span>Coordinates:</span>
-                            <span class="text-indigo-600 font-mono">${lat.toFixed(4)}, ${lon.toFixed(4)}</span>
-                        </div>
+                <div class="p-1 min-w-[180px] text-slate-800">
+                    <h3 class="font-bold text-sm text-slate-900 border-b pb-1 mb-1">${city}, ${country}</h3>
+                    <div class="text-[11px] space-y-0.5">
+                        <p><span class="font-semibold text-slate-500">IP:</span> ${ip}</p>
+                        <p><span class="font-semibold text-slate-500">Provider:</span> ${provider.toUpperCase()}</p>
+                        <p><span class="font-semibold text-slate-500">Coords:</span> ${lat.toFixed(4)}, ${lon.toFixed(4)}</p>
                     </div>
                 </div>
             `;
             
             currentMarker.bindPopup(popupContent, {
                 closeButton: true,
-                offset: L.point(0, -5)
+                className: 'custom-popup'
             }).openPopup();
+
+            // Fit map to marker view
+            map.flyTo([lat, lon], 8, {
+                animate: true,
+                duration: 1.0
+            });
         }
 
         // Plot historical record from action click
