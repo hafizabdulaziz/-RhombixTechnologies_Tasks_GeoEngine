@@ -398,7 +398,7 @@
             errorBanner.classList.add('hidden');
 
             try {
-                const response = await fetch('/api/lookup', {
+                const response = await fetch('/api/v1/lookup', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ ip_or_domain: target })

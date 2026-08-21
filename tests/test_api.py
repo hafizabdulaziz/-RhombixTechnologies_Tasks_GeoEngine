@@ -28,7 +28,8 @@ def test_api_history():
     response = client.get("/api/v1/history")
     assert response.status_code == 200
     data = response.json()
-    assert isinstance(data, list)
+    assert "history" in data
+    assert isinstance(data["history"], list)
 
 def test_api_lookup_validation_error():
     """Test that passing an empty target returns a 422 Validation error."""
