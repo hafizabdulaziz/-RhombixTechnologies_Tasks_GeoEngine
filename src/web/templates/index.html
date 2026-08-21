@@ -326,10 +326,12 @@
         // Fetch & Populate History
         async function loadHistory() {
             try {
-                const res = await fetch('/api/history');
-                if (!res.ok) throw new Error("Could not retrieve history");
+                const response = await fetch('/api/v1/history');
+                if (!response.ok) throw new Error("Could not retrieve history");
                 
-                const history = await res.json();
+                const result = await response.json();
+                const history = result.history;
+                // Optional: Use result.analytics for summary metrics if needed
                 const tbody = document.getElementById('history-tbody');
                 tbody.innerHTML = ''; // Clear previous
 
