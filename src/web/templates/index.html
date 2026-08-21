@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeoEngine Pro | Enterprise Geolocation Dashboard</title>
+    <title>GeoTrace | IP & Network Intelligence</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Leaflet CSS -->
@@ -14,26 +14,13 @@
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #0f172a; /* Slate 900 background for a sleek dark mode appearance */
+            background-color: #0f172a; /* Slate 900 background */
         }
-        /* Custom scrollbar for table and history */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #1e293b;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #475569;
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #64748b;
-        }
-        .leaflet-container {
-            background-color: #1e293b !important;
-        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        .leaflet-container { background-color: #1e293b !important; }
     </style>
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col">
@@ -49,14 +36,13 @@
                     </svg>
                 </div>
                 <div>
-                    <h1 class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
-                        GeoEngine <span class="text-rose-500 font-medium">Pro</span>
+                    <h1 class="text-xl font-extrabold tracking-tight text-white">
+                        GeoTrace
                     </h1>
-                    <p class="text-xs text-slate-500 font-semibold tracking-wider uppercase">Enterprise Geolocation Engine</p>
+                    <p class="text-xs text-slate-500 font-semibold tracking-wider uppercase">IP & Network Intelligence</p>
                 </div>
             </div>
 
-            <!-- Health Status Widget -->
             <div id="health-widget" class="flex items-center bg-slate-950/60 border border-slate-800 px-4 py-2 rounded-xl">
                 <span class="relative flex h-3 w-3 mr-3">
                     <span id="health-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -66,6 +52,7 @@
             </div>
         </div>
     </header>
+    <!-- (Remainder of body content remains same, just branding changes) -->
 
     <!-- Main Content Grid -->
     <main class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
