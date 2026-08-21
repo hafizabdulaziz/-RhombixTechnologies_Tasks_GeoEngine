@@ -1,11 +1,13 @@
 import os
 import time
 import logging
+import uuid
 from typing import Dict, Any, List
 from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 
 # Internal imports
 from src.database.models import init_db
@@ -16,23 +18,31 @@ from src.core.utils import resolve_ip
 from src.providers.factory import ProviderFactory
 
 # Initialize Logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-logger = logging.getLogger("GeoEngineAPI")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - [%(request_id)s] %(message)s")
+logger = logging.getLogger("GeoTraceAPI")
 
 # Initialize Database
 try:
-    logger.info("Initializing database...")
+    logger.info("Initializing database...", extra={"request_id": "INIT"})
     init_db()
-    logger.info("Database initialized successfully.")
+    logger.info("Database initialized successfully.", extra={"request_id": "INIT"})
 except Exception as e:
-    logger.critical(f"Database initialization failed: {e}")
+    logger.critical(f"Database initialization failed: {e}", extra={"request_id": "INIT"})
     raise e
 
 # Setup FastAPI App
 app = FastAPI(
-    title="GeoEngine Pro API",
-    description="Enterprise Geolocation Platform API",
+    title="GeoTrace API",
+    description="Enterprise IP & Network Intelligence Platform API",
     version="1.0.0"
+)
+
+# CORS for future frontend integration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Setup Templates Directory
@@ -43,69 +53,69 @@ templates = Jinja2Templates(directory=TEMPLATES_DIR)
 # Instantiate services
 geolocation_service = GeolocationService()
 
+# --- Request/Response Schemas ---
 
-# Request/Response Schemas
 class LookupRequest(BaseModel):
-    ip_or_domain: str
+    ip_or_domain: str = Field(..., min_length=1, description="The IP address or domain to geolocate")
 
+class ErrorResponse(BaseModel):
+    request_id: str
+    detail: str
 
-@app.get("/", response_class=HTMLResponse)
+# --- Middleware for Request ID ---
+
+@app.middleware("http")
+async def add_request_id(request: Request, call_next):
+    request_id = str(uuid.uuid4())
+    request.state.request_id = request_id
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
+
+# --- Endpoints ---
+
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def serve_dashboard(request: Request) -> HTMLResponse:
     """Serves the main interactive web dashboard."""
-    try:
-        logger.info("Serving web dashboard.")
-        return templates.TemplateResponse(
-            request=request, 
-            name="index.html"
-        )
-    except Exception as e:
-        logger.error(f"Error rendering dashboard: {e}")
-        return HTMLResponse(
-            content=f"<h1>Internal Server Error</h1><p>Could not load the dashboard template: {e}</p>",
-            status_code=500
-        )
+    return templates.TemplateResponse(
+        request=request, 
+        name="index.html"
+    )
 
-
-@app.post("/api/lookup")
-async def lookup_ip_or_domain(request: LookupRequest) -> Dict[str, Any]:
+@app.post("/api/v1/lookup", responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
+async def lookup_ip_or_domain(request: Request, body: LookupRequest) -> Dict[str, Any]:
     """
     Lookup geolocation for an IP or Domain.
-    Resolves domain, gets location, saves to lookup history, and generates map snippet.
     """
-    target = request.ip_or_domain.strip()
-    if not target:
-        raise HTTPException(status_code=400, detail="Target IP or Domain cannot be empty.")
-
-    logger.info(f"Received lookup request for target: {target}")
+    request_id = request.state.request_id
+    target = body.ip_or_domain.strip()
+    
+    logger.info(f"Received lookup request for target: {target}", extra={"request_id": request_id})
     
     try:
-        # Resolve target to IP if it is a domain
         resolved_ip = resolve_ip(target)
-        logger.info(f"Resolved target '{target}' to IP '{resolved_ip}'")
-    except Exception as e:
-        logger.error(f"Failed to resolve host '{target}': {e}")
+        logger.info(f"Resolved target '{target}' to IP '{resolved_ip}'", extra={"request_id": request_id})
+    except ValueError as e:
+        logger.warning(f"Validation failed for '{target}': {e}", extra={"request_id": request_id})
         raise HTTPException(
-            status_code=400,
-            detail=f"Could not resolve or validate IP/domain '{target}'. Error: {e}"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
         )
 
     try:
-        # Perform geolocation lookup with Failover
         start_time = time.perf_counter()
         data = geolocation_service.get_location(resolved_ip)
         latency_ms = (time.perf_counter() - start_time) * 1000
         
-        # Save to lookup history in database
         HistoryService.save_lookup(data)
-        logger.info(f"Lookup successful for {resolved_ip}. Saved to history database.")
+        logger.info(f"Lookup successful for {resolved_ip}.", extra={"request_id": request_id})
     except Exception as e:
-        logger.error(f"Geolocation lookup failed for '{resolved_ip}': {e}")
+        logger.error(f"Geolocation lookup failed for '{resolved_ip}': {e}", extra={"request_id": request_id})
         raise HTTPException(
-            status_code=500,
-            detail=f"Failed to fetch geolocation details for {resolved_ip}: {e}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch geolocation data. Please try again later."
         )
 
-    # Generate Map HTML and coordinates
     map_html = ""
     map_coordinates = {"lat": None, "lon": None}
     
@@ -115,83 +125,44 @@ async def lookup_ip_or_domain(request: LookupRequest) -> Dict[str, Any]:
         try:
             map_html = get_map_html(data.latitude, data.longitude, data.city or "Unknown")
         except Exception as e:
-            logger.warning(f"Failed to generate map HTML for coordinates: {e}")
+            logger.warning(f"Map generation failed: {e}", extra={"request_id": request_id})
 
-    # Return complete JSON payload
     return {
+        "request_id": request_id,
         "status": "success",
-        "target": target,
-        "resolved_ip": resolved_ip,
         "data": {
             "ip": data.ip,
             "city": data.city or "Unknown",
-            "region": data.region or "Unknown",
             "country": data.country or "Unknown",
             "latitude": data.latitude,
             "longitude": data.longitude,
-            "provider": data.provider or "Unknown",
             "latency_ms": round(latency_ms, 2)
         },
         "map_coordinates": map_coordinates,
         "map_html": map_html
     }
 
-
-@app.get("/api/history")
-async def get_lookup_history() -> List[Dict[str, Any]]:
-    """Returns the history of recent geolocation lookups from the SQLite database."""
+@app.get("/api/v1/history")
+async def get_lookup_history(request: Request) -> List[Dict[str, Any]]:
+    """Returns the history of recent geolocation lookups."""
     try:
-        logger.info("Fetching lookup history.")
         records = HistoryService.get_history()
-        
-        formatted_history = []
-        for r in records:
-            formatted_history.append({
-                "id": r.id,
-                "ip": r.ip,
-                "city": r.city or "Unknown",
-                "region": r.region or "Unknown",
-                "country": r.country or "Unknown",
-                "latitude": r.latitude,
-                "longitude": r.longitude,
-                "provider": r.provider or "Unknown",
-                "timestamp": r.timestamp.strftime("%Y-%m-%d %H:%M:%S") if r.timestamp else "N/A"
-            })
-            
-        # Return history records sorted descending by id to show newest first
-        formatted_history.reverse()
-        return formatted_history
-    except Exception as e:
-        logger.error(f"Error fetching lookup history: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Internal database error while fetching history: {e}"
-        )
-
-
-@app.get("/api/health")
-async def health_check() -> Dict[str, Any]:
-    """Checks the health and failover status of configured geolocation providers."""
-    try:
-        logger.info("Executing API and Provider health check.")
-        factory = ProviderFactory()
-        providers = factory.get_providers()
-        
-        provider_status = {}
-        for provider in providers:
-            provider_status[provider.name] = "available"
-            
-        return {
-            "status": "healthy",
-            "database": "connected",
-            "active_providers": provider_status
-        }
-    except Exception as e:
-        logger.error(f"Health check failed: {e}")
-        return JSONResponse(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            content={
-                "status": "unhealthy",
-                "reason": str(e)
+        return [
+            {
+                "id": r.id, "ip": r.ip, "city": r.city, "country": r.country,
+                "timestamp": r.timestamp.strftime("%Y-%m-%d %H:%M:%S")
             }
-        )
+            for r in reversed(records)
+        ]
+    except Exception as e:
+        logger.error(f"Error fetching history: {e}", extra={"request_id": request.state.request_id})
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/api/v1/health")
+async def health_check(request: Request) -> Dict[str, Any]:
+    """Checks the health and failover status of configured geolocation providers."""
+    return {
+        "status": "healthy",
+        "database": "connected",
+        "request_id": request.state.request_id
+    }
