@@ -175,30 +175,28 @@ async def lookup_ip_or_domain(request: Request, body: LookupRequest) -> LookupRe
         map_html=map_html
     )
 
-@app.get("/api/v1/history")
-async def get_lookup_history(request: Request) -> Dict[str, Any]:
+@app.get("/api/v1/history", response_model=HistoryResponse)
+async def get_lookup_history(request: Request) -> HistoryResponse:
     """Returns the history of recent geolocation lookups with analytics."""
     try:
         records = HistoryService.get_history()
-        total = len(records)
-        # Assuming all in DB are successful based on current logic
-        success = total 
+        analytics = HistoryService.get_analytics()
         
         formatted_history = [
-            {
-                "id": r.id, "ip": r.ip, "city": r.city, "country": r.country,
-                "timestamp": r.timestamp.strftime("%Y-%m-%d %H:%M:%S")
-            }
-            for r in reversed(records)
+            HistoryItem(
+                id=r.id, ip=r.ip, city=r.city or "Unknown", country=r.country or "Unknown",
+                timestamp=r.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+            )
+            for r in records
         ]
         
-        return {
-            "analytics": {
-                "total_lookups": total,
-                "success_rate": 100 if total > 0 else 0
-            },
-            "history": formatted_history
-        }
+        return HistoryResponse(
+            analytics=Analytics(
+                total_lookups=analytics["total_lookups"],
+                success_rate=analytics["success_rate"]
+            ),
+            history=formatted_history
+        )
     except Exception as e:
         logger.error(f"Error fetching history: {e}", extra={"request_id": request.state.request_id})
         raise HTTPException(status_code=500, detail="Internal server error")
