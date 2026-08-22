@@ -11,8 +11,8 @@ def test_serve_dashboard():
     """Test that the main index route returns 200 and serves the dashboard HTML."""
     response = client.get("/")
     assert response.status_code == 200
-    assert "GeoEngine Pro" in response.text
-    assert "Interactive Visual Node Mapping" in response.text
+    assert "GeoTrace" in response.text
+    assert "Live Map" in response.text
 
 
 def test_api_health():
