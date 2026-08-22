@@ -37,6 +37,11 @@ def test_api_lookup_validation_error():
     response = client.post("/api/v1/lookup", json={"ip_or_domain": ""})
     assert response.status_code == 422
 
+def test_api_lookup_malformed_input():
+    """Test that malformed input returns a 400 error."""
+    response = client.post("/api/v1/lookup", json={"ip_or_domain": "127.0.0.1127.0."})
+    assert response.status_code == 400
+
 @patch("src.services.geolocation_service.GeolocationService.get_location")
 def test_api_lookup_success(mock_get_location):
     """Test a successful geolocation lookup via the POST endpoint using mock data."""

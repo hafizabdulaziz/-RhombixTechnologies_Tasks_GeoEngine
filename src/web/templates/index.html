@@ -379,6 +379,24 @@
             }
         }
 
+        // Helper: Clear UI state
+        function resetMetricsUI() {
+            document.getElementById('metric-ip').textContent = '-';
+            document.getElementById('metric-country-name').textContent = 'Country Name';
+            document.getElementById('metric-country-flag').textContent = '🌍';
+            document.getElementById('metric-city').textContent = '-';
+            document.getElementById('metric-region').textContent = 'State/Region';
+            document.getElementById('metric-coords').textContent = '-';
+            document.getElementById('metric-latency').textContent = '-';
+            document.getElementById('metric-provider').textContent = 'Provider: -';
+            
+            // Remove previous active marker/pulses if they exist
+            if (currentMarker) map.removeLayer(currentMarker);
+            if (currentPulse) map.removeLayer(currentPulse);
+            currentMarker = null;
+            currentPulse = null;
+        }
+
         // Form Submit Handler
         async function handleLookup(e) {
             e.preventDefault();
@@ -392,7 +410,8 @@
             const errorBanner = document.getElementById('error-banner');
             const errorMessage = document.getElementById('error-message');
 
-            // Set loading state
+            // Reset UI and Set loading state
+            resetMetricsUI();
             searchBtn.disabled = true;
             spinner.classList.remove('hidden');
             errorBanner.classList.add('hidden');
@@ -415,16 +434,16 @@
                 document.getElementById('metric-ip').textContent = geo.ip;
                 document.getElementById('metric-ip').title = geo.ip;
                 
-                document.getElementById('metric-country-name').textContent = geo.country;
+                document.getElementById('metric-country-name').textContent = geo.country || 'Unknown';
                 document.getElementById('metric-country-flag').textContent = getFlagEmoji(geo.country);
                 
-                document.getElementById('metric-city').textContent = geo.city;
-                document.getElementById('metric-region').textContent = geo.region;
+                document.getElementById('metric-city').textContent = geo.city || 'Unknown';
+                document.getElementById('metric-region').textContent = geo.region || 'Unknown';
                 
                 document.getElementById('metric-coords').textContent = `${geo.latitude?.toFixed(4) || '-'}, ${geo.longitude?.toFixed(4) || '-'}`;
                 
                 document.getElementById('metric-latency').textContent = `${geo.latency_ms} ms`;
-                document.getElementById('metric-provider').textContent = `Provider: ${geo.provider.toUpperCase()}`;
+                document.getElementById('metric-provider').textContent = `Provider: ${(geo.provider || 'Unknown').toUpperCase()}`;
 
                 // Plot on interactive map
                 if (geo.latitude !== null && geo.longitude !== null) {
@@ -438,6 +457,7 @@
 
             } catch (err) {
                 console.error("Lookup error:", err);
+                resetMetricsUI(); // Ensure UI is cleared on error
                 errorMessage.textContent = err.message || "Could not resolve or lookup target geolocation details.";
                 errorBanner.classList.remove('hidden');
             } finally {
