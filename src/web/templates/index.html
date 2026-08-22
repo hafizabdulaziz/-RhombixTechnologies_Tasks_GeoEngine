@@ -344,11 +344,11 @@
 
             // Add translucent pulsing ring indicating accuracy range
             currentPulse = L.circle([lat, lon], {
-                color: '#6366f1', // Indigo ring
-                fillColor: '#818cf8',
+                color: '#4f46e5', // Indigo
+                fillColor: '#6366f1',
                 fillOpacity: 0.1,
                 weight: 1,
-                radius: 15000 
+                radius: 20000 
             }).addTo(map);
 
             // Create professional custom marker
@@ -357,17 +357,16 @@
                 fillColor: '#f43f5e', // Rose-500
                 fillOpacity: 1,
                 weight: 2,
-                radius: 8
+                radius: 6
             }).addTo(map);
 
             // Bind elegant modern popup
             const popupContent = `
-                <div class="p-1 min-w-[180px] text-slate-800">
-                    <h3 class="font-bold text-sm text-slate-900 border-b pb-1 mb-1">${city}, ${country}</h3>
-                    <div class="text-[11px] space-y-0.5">
+                <div class="p-2 min-w-[160px] text-slate-800">
+                    <h3 class="font-bold text-xs text-slate-900 border-b pb-1 mb-1">${city}, ${country}</h3>
+                    <div class="text-[10px] space-y-0.5">
                         <p><span class="font-semibold text-slate-500">IP:</span> ${ip}</p>
                         <p><span class="font-semibold text-slate-500">Provider:</span> ${provider.toUpperCase()}</p>
-                        <p><span class="font-semibold text-slate-500">Coords:</span> ${lat.toFixed(4)}, ${lon.toFixed(4)}</p>
                     </div>
                 </div>
             `;
@@ -378,9 +377,9 @@
             }).openPopup();
 
             // Fit map to marker view
-            map.flyTo([lat, lon], 8, {
+            map.flyTo([lat, lon], 6, {
                 animate: true,
-                duration: 1.0
+                duration: 0.8
             });
         }
 
