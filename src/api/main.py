@@ -58,9 +58,41 @@ geolocation_service = GeolocationService()
 class LookupRequest(BaseModel):
     ip_or_domain: str = Field(..., min_length=1, description="The IP address or domain to geolocate")
 
+class GeoData(BaseModel):
+    ip: str
+    city: str
+    country: str
+    latitude: float | None = None
+    longitude: float | None = None
+    latency_ms: float
+    provider: str
+
+class LookupResponse(BaseModel):
+    request_id: str
+    status: str
+    data: GeoData
+    map_coordinates: Dict[str, float | None]
+    map_html: str
+
 class ErrorResponse(BaseModel):
     request_id: str
     detail: str
+
+class HistoryItem(BaseModel):
+    id: int
+    ip: str
+    city: str
+    country: str
+    timestamp: str
+
+class Analytics(BaseModel):
+    total_lookups: int
+    success_rate: float
+
+class HistoryResponse(BaseModel):
+    analytics: Analytics
+    history: List[HistoryItem]
+
 
 # --- Middleware for Request ID ---
 
@@ -82,8 +114,8 @@ async def serve_dashboard(request: Request) -> HTMLResponse:
         name="index.html"
     )
 
-@app.post("/api/v1/lookup", responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
-async def lookup_ip_or_domain(request: Request, body: LookupRequest) -> Dict[str, Any]:
+@app.post("/api/v1/lookup", response_model=LookupResponse, responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
+async def lookup_ip_or_domain(request: Request, body: LookupRequest) -> LookupResponse:
     """
     Lookup geolocation for an IP or Domain.
     """
@@ -127,20 +159,21 @@ async def lookup_ip_or_domain(request: Request, body: LookupRequest) -> Dict[str
         except Exception as e:
             logger.warning(f"Map generation failed: {e}", extra={"request_id": request_id})
 
-    return {
-        "request_id": request_id,
-        "status": "success",
-        "data": {
-            "ip": data.ip,
-            "city": data.city or "Unknown",
-            "country": data.country or "Unknown",
-            "latitude": data.latitude,
-            "longitude": data.longitude,
-            "latency_ms": round(latency_ms, 2)
-        },
-        "map_coordinates": map_coordinates,
-        "map_html": map_html
-    }
+    return LookupResponse(
+        request_id=request_id,
+        status="success",
+        data=GeoData(
+            ip=data.ip,
+            city=data.city or "Unknown",
+            country=data.country or "Unknown",
+            latitude=data.latitude,
+            longitude=data.longitude,
+            latency_ms=round(latency_ms, 2),
+            provider=data.provider or "Unknown"
+        ),
+        map_coordinates=map_coordinates,
+        map_html=map_html
+    )
 
 @app.get("/api/v1/history")
 async def get_lookup_history(request: Request) -> Dict[str, Any]:
